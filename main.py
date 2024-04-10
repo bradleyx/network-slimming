@@ -14,7 +14,7 @@ import os
 import tarfile
 import pickle
 from torch.utils.data import TensorDataset, DataLoader
-import CustomDataset
+
 
 
 # Training settings
@@ -108,6 +108,24 @@ val_dataset = TensorDataset(val_images_transformed, val_labels_tensor)
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = DataLoader(val_dataset, batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
+# Get a batch of data from the train_loader
+batch = next(iter(train_loader))
+images, labels = batch
+
+# Check the shapes of the tensors
+print("Images shape:", images.shape)
+print("Labels shape:", labels.shape)
+
+# Check the data types of the tensors
+print("Images dtype:", images.dtype)
+print("Labels dtype:", labels.dtype)
+
+# Check the range of values in the tensors
+print("Images min value:", images.min())
+print("Images max value:", images.max())
+print("Labels min value:", labels.min())
+print("Labels max value:", labels.max())
+
 if args.refine:
     checkpoint = torch.load(args.refine)
     model = models.__dict__[args.arch](dataset=args.dataset, depth=args.depth, cfg=checkpoint['cfg'])
@@ -147,6 +165,7 @@ def train(epoch):
         data, target = Variable(data), Variable(target)
         optimizer.zero_grad()
         output = model(data)
+        target=target.squeeze().long()
         loss = F.cross_entropy(output, target)
         pred = output.data.max(1, keepdim=True)[1]
         loss.backward()
