@@ -78,6 +78,24 @@ train_labels = pickle.load(open('train_labels.pkl', 'rb'))
 val_images = pickle.load(open('val_images.pkl', 'rb'))
 val_labels = pickle.load(open('val_labels.pkl', 'rb'))
 
+print("Type of val_images:", type(val_images))
+print("Type of val_labels:", type(val_labels))
+
+# Check the shape of val_images and val_labels
+print("Shape of val_images:", val_images.shape)
+print("Shape of val_labels:", val_labels.shape)
+
+# Check the data type of val_images and val_labels
+print("Data type of val_images:", val_images.dtype)
+print("Data type of val_labels:", val_labels.dtype)
+
+# Check the range of values in val_images
+print("Minimum value in val_images:", val_images.min())
+print("Maximum value in val_images:", val_images.max())
+
+# Check the unique labels in val_labels
+print("Unique labels in val_labels:", np.unique(val_labels))
+
 # Define the transformations for your dataset
 train_transforms = transforms.Compose([
     transforms.ToPILImage(),
@@ -90,6 +108,9 @@ train_transforms = transforms.Compose([
 
 test_transforms = transforms.Compose([
     transforms.ToPILImage(),
+    transforms.Pad(4),
+    transforms.RandomCrop(32),
+    transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
@@ -185,6 +206,8 @@ def test():
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data, volatile=True), Variable(target)
+        target=target.squeeze()
+        print("Input data shape:", data.shape)
         output = model(data)
         test_loss += F.cross_entropy(output, target, size_average=False).data.item() # sum up batch loss
         pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
