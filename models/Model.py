@@ -4,9 +4,9 @@ import torch.nn.functional as F
 
 __all__ = ['my_model'] 
 
-class Net(nn.Module):
+class my_model(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
+        super(my_model, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, 3, padding=1)
         self.conv2 = nn.Conv2d(32, 32, 3)
         self.pool = nn.MaxPool2d(2, 2)
