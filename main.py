@@ -12,7 +12,9 @@ from torch.autograd import Variable
 import models
 import os
 import tarfile
+import pickle
 from torch.utils.data import TensorDataset, DataLoader
+import CustomDataset
 
 
 # Training settings
@@ -65,57 +67,46 @@ if not os.path.exists(args.save):
     os.makedirs(args.save)
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+import pickle
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+from torchvision import transforms
+
+# Load the data from pickle files
 train_images = pickle.load(open('train_images.pkl', 'rb'))
 train_labels = pickle.load(open('train_labels.pkl', 'rb'))
-# load val
 val_images = pickle.load(open('val_images.pkl', 'rb'))
 val_labels = pickle.load(open('val_labels.pkl', 'rb'))
-train_images_tensor = torch.tensor(train_images)
+
+# Define the transformations for your dataset
+train_transforms = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Pad(4),
+    transforms.RandomCrop(32),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+])
+
+test_transforms = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+])
+
+# Apply transformations to the data
+train_images_transformed = torch.stack([train_transforms(image) for image in train_images])
 train_labels_tensor = torch.tensor(train_labels)
-val_images_tensor = torch.tensor(val_images)
+val_images_transformed = torch.stack([test_transforms(image) for image in val_images])
 val_labels_tensor = torch.tensor(val_labels)
 
-# Create TensorDataset
-train_dataset = TensorDataset(train_images_tensor, train_labels_tensor)
-val_dataset = TensorDataset(val_images_tensor, val_labels_tensor)
+# Create TensorDataset instances
+train_dataset = TensorDataset(train_images_transformed, train_labels_tensor)
+val_dataset = TensorDataset(val_images_transformed, val_labels_tensor)
 
 # Create data loaders
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = DataLoader(val_dataset, batch_size=args.test_batch_size, shuffle=True, **kwargs)
-# if args.dataset == 'cifar10':
-#     train_loader = torch.utils.data.DataLoader(
-#         datasets.CIFAR10('./data.cifar10', train=True, download=True,
-#                        transform=transforms.Compose([
-#                            transforms.Pad(4),
-#                            transforms.RandomCrop(32),
-#                            transforms.RandomHorizontalFlip(),
-#                            transforms.ToTensor(),
-#                            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-#                        ])),
-#         batch_size=args.batch_size, shuffle=True, **kwargs)
-#     test_loader = torch.utils.data.DataLoader(
-#         datasets.CIFAR10('./data.cifar10', train=False, transform=transforms.Compose([
-#                            transforms.ToTensor(),
-#                            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-#                        ])),
-#         batch_size=args.test_batch_size, shuffle=True, **kwargs)
-# else:
-#     train_loader = torch.utils.data.DataLoader(
-#         datasets.CIFAR100('./data.cifar100', train=True, download=True,
-#                        transform=transforms.Compose([
-#                            transforms.Pad(4),
-#                            transforms.RandomCrop(32),
-#                            transforms.RandomHorizontalFlip(),
-#                            transforms.ToTensor(),
-#                            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-#                        ])),
-#         batch_size=args.batch_size, shuffle=True, **kwargs)
-#     test_loader = torch.utils.data.DataLoader(
-#         datasets.CIFAR100('./data.cifar100', train=False, transform=transforms.Compose([
-#                            transforms.ToTensor(),
-#                            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-#                        ])),
-#         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
 if args.refine:
     checkpoint = torch.load(args.refine)
