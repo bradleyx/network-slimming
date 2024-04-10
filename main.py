@@ -102,11 +102,11 @@ if args.refine:
     model = models.__dict__[args.arch](dataset=args.dataset, depth=args.depth, cfg=checkpoint['cfg'])
     model.load_state_dict(checkpoint['state_dict'])
 else:
-    model = models.__dict__[args.arch](dataset=args.dataset, depth=args.depth)
+    model = models.__dict__[args.arch]()
 
 if args.cuda:
     model.cuda()
-
+print(model.parameters())
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
 if args.resume:
