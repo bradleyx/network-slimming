@@ -12,6 +12,8 @@ from torch.autograd import Variable
 import models
 import os
 import tarfile
+from torch.utils.data import TensorDataset, DataLoader
+
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Slimming CIFAR training')
@@ -63,33 +65,23 @@ if not os.path.exists(args.save):
     os.makedirs(args.save)
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+train_images = pickle.load(open('train_images.pkl', 'rb'))
+train_labels = pickle.load(open('train_labels.pkl', 'rb'))
+# load val
+val_images = pickle.load(open('val_images.pkl', 'rb'))
+val_labels = pickle.load(open('val_labels.pkl', 'rb'))
+train_images_tensor = torch.tensor(train_images)
+train_labels_tensor = torch.tensor(train_labels)
+val_images_tensor = torch.tensor(val_images)
+val_labels_tensor = torch.tensor(val_labels)
 
+# Create TensorDataset
+train_dataset = TensorDataset(train_images_tensor, train_labels_tensor)
+val_dataset = TensorDataset(val_images_tensor, val_labels_tensor)
 
-# Extract the tar file
-datapath="/content/dataset.tar.gz"
-with tarfile.open(datapath, 'r') as tar:
-    tar.extractall('extracted_folder')
-
-# Define the data transforms
-train_transform = transforms.Compose([
-    transforms.Pad(4),
-    transforms.RandomCrop(32),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-])
-
-test_transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-])
-
-# Load the dataset
-train_dataset = datasets.ImageFolder(root='extracted_folder/train', transform=train_transform)
-test_dataset = datasets.ImageFolder(root='extracted_folder/test', transform=test_transform)
 # Create data loaders
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.test_batch_size, shuffle=True, **kwargs)
+train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+test_loader = DataLoader(val_dataset, batch_size=args.test_batch_size, shuffle=True, **kwargs)
 # if args.dataset == 'cifar10':
 #     train_loader = torch.utils.data.DataLoader(
 #         datasets.CIFAR10('./data.cifar10', train=True, download=True,
