@@ -149,7 +149,7 @@ print("Labels max value:", labels.max())
 
 if args.refine:
     checkpoint = torch.load(args.refine)
-    model = models.__dict__[args.arch](dataset=args.dataset, depth=args.depth, cfg=checkpoint['cfg'])
+    model = models.__dict__[args.arch]()
     model.load_state_dict(checkpoint['state_dict'])
 else:
     model = models.__dict__[args.arch]()
