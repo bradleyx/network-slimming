@@ -97,33 +97,33 @@ print("Maximum value in val_images:", val_images.max())
 print("Unique labels in val_labels:", np.unique(val_labels))
 
 # Define the transformations for your dataset
-train_transforms = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Pad(4),
-    transforms.RandomCrop(32),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-])
+# train_transforms = transforms.Compose([
+#     transforms.ToPILImage(),
+#     transforms.Pad(4),
+#     transforms.RandomCrop(32),
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+# ])
 
-test_transforms = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Pad(4),
-    transforms.RandomCrop(32),
-    transforms.RandomHorizontalFlip(),
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-])
+# test_transforms = transforms.Compose([
+#     transforms.ToPILImage(),
+#     transforms.Pad(4),
+#     transforms.RandomCrop(32),
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+# ])
 
 # Apply transformations to the data
-train_images_transformed = torch.stack([train_transforms(image) for image in train_images])
-train_labels_tensor = torch.tensor(train_labels)
-val_images_transformed = torch.stack([test_transforms(image) for image in val_images])
-val_labels_tensor = torch.tensor(val_labels)
+train_images_tensor = torch.from_numpy(train_images)
+train_labels_tensor = torch.from_numpy(train_labels)
+val_images_tensor = torch.from_numpy(val_images)
+val_labels_tensor = torch.from_numpy(val_labels)
 
 # Create TensorDataset instances
-train_dataset = TensorDataset(train_images_transformed, train_labels_tensor)
-val_dataset = TensorDataset(val_images_transformed, val_labels_tensor)
+train_dataset = TensorDataset(train_images_tensor, train_labels_tensor)
+val_dataset = TensorDataset(val_images_tensor, val_labels_tensor)
 
 # Create data loaders
 train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
