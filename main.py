@@ -35,7 +35,7 @@ parser.add_argument('--epochs', type=int, default=160, metavar='N',
                     help='number of epochs to train (default: 160)')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--lr', type=float, default=0.1, metavar='LR',
+parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
                     help='learning rate (default: 0.1)')
 parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                     help='SGD momentum (default: 0.9)')
@@ -115,10 +115,21 @@ print("Unique labels in val_labels:", np.unique(val_labels))
 #     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 # ])
 
+
+train_transforms = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.ToTensor()
+])
+
+test_transforms = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.ToTensor()
+])
+
 # Apply transformations to the data
-train_images_tensor = torch.from_numpy(train_images)
+train_images_tensor = torch.stack([train_transforms(image) for image in train_images])
 train_labels_tensor = torch.from_numpy(train_labels)
-val_images_tensor = torch.from_numpy(val_images)
+val_images_tensor = torch.stack([test_transforms(image) for image in val_images])
 val_labels_tensor = torch.from_numpy(val_labels)
 
 # Create TensorDataset instances
@@ -157,7 +168,7 @@ else:
 if args.cuda:
     model.cuda()
 print(model.parameters())
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
 if args.resume:
     if os.path.isfile(args.resume):

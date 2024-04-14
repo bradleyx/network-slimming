@@ -14,7 +14,7 @@ class my_model(nn.Module):
         self.conv3 = nn.Conv2d(32, 64, 3, padding=1)
         self.conv4 = nn.Conv2d(64, 64, 3)
         self.dropout2 = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(64 * 6 * 6, 512)
+        self.fc1 = nn.Linear(64 * 4 * 4, 512)
         self.dropout3 = nn.Dropout(0.5)
         self.fc2 = nn.Linear(512, 5)
 
