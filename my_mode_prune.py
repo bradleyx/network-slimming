@@ -43,15 +43,29 @@ print(model)
 total = 0
 for m in model.modules():
     if isinstance(m, nn.Conv2d):
-        total += m.weight.data.numel()
+        total += m.weight.data.shape[0]
 
 conv_weights = torch.zeros(total)
 index = 0
 for m in model.modules():
     if isinstance(m, nn.Conv2d):
-        size = m.weight.data.numel()
-        conv_weights[index:(index+size)] = m.weight.data.view(-1).abs().clone()
+        size = m.weight.data.shape[0]
+        conv_weights[index:(index+size)] = m.weight.data.abs().clone().view(-1)
         index += size
+
+y, i = torch.sort(conv_weights)
+thre_index = int(total * args.percent)
+thre = y[thre_index]
+
+pruned = 0
+for k, m in enumerate(model.modules()):
+    if isinstance(m, nn.Conv2d):
+        weight_copy = m.weight.data.abs().clone()
+        mask = weight_copy.gt(thre).float().cuda()
+        pruned = pruned + mask.shape[0] - torch.sum(mask)
+        m.weight.data.mul_(mask)
+        print('layer index: {:d} \t total channel: {:d} \t remaining channel: {:d}'.
+            format(k, mask.shape[0], int(torch.sum(mask))))
 
 y, i = torch.sort(conv_weights)
 thre_index = int(total * args.percent)
@@ -72,18 +86,28 @@ for k, m in enumerate(model.modules()):
 
 print('Total conv params: {}, Pruned conv params: {}, Pruned ratio: {}'.format(total, pruned, pruned/total))
 
-# Make real prune
-# Delete all weight with mask 0
-def actual_prune(model):
-    for name, module in model.named_modules():
-        if isinstance(module, nn.Conv2d):
-            module.weight.data = module.weight.data.masked_select(module.weight.data != 0).view(module.weight.data.size())
-            if module.bias is not None:
-                module.bias.data = module.bias.data.masked_select(module.bias.data != 0).view(module.bias.data.size())
-
-if not zero_flag:
-    actual_prune(model)
+newmodel = my_model()
+layer_id_in_cfg = 0
+start_mask = torch.ones(3)
+end_mask = conv_weights.gt(thre).float().view(-1).cuda()
+for [m0, m1] in zip(model.modules(), newmodel.modules()):
+    if isinstance(m0, nn.Conv2d):
+        idx0 = np.squeeze(np.argwhere(np.asarray(start_mask.cpu().numpy())))
+        idx1 = np.squeeze(np.argwhere(np.asarray(end_mask.cpu().numpy())))
+        if idx0.size == 1:
+            idx0 = np.resize(idx0, (1,))
+        if idx1.size == 1:
+            idx1 = np.resize(idx1, (1,))
+        w1 = m0.weight.data[:, idx0.tolist(), :, :].clone()
+        w1 = w1[idx1.tolist(), :, :, :].clone()
+        m1.weight.data = w1.clone()
+        layer_id_in_cfg += 1
+        start_mask = end_mask.clone()
+        if layer_id_in_cfg < len(model.conv_layers):
+            end_mask = conv_weights[layer_id_in_cfg].gt(thre).float().view(-1).cuda()
+    elif isinstance(m0, nn.Linear):
+        m1.weight.data = m0.weight.data.clone()
+        m1.bias.data = m0.bias.data.clone()
 
 print(model)
-
-torch.save({'state_dict': model.state_dict()}, os.path.join(args.save, 'pruned.pth.tar'))
+torch.save({'state_dict': newmodel.state_dict()}, os.path.join(args.save, 'pruned.pth.tar'))
