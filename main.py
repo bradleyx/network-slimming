@@ -252,13 +252,15 @@ def save_checkpoint(state, is_best, filepath):
     torch.save(state, os.path.join(filepath, 'checkpoint.h5'))
     if is_best:
         shutil.copyfile(os.path.join(filepath, 'checkpoint.h5'), os.path.join(filepath, 'model_best.h5'))
-
+        
+        # Save the best model weights in HDF5 format
         import h5py
+
         state_dict = model.state_dict()
-        with h5py.File('model_weights.h5', 'w') as file:
-            print("Writing to model_weights.h5")
+        with h5py.File('model_best.h5', 'w') as file:
+            print("Writing to model_best.h5")
             for layer_name, weights in state_dict.items():
-                file.create_dataset(layer_name, data=weights.numpy())
+                file.create_dataset(layer_name, data=weights.cpu().numpy())
 
 
 best_prec1 = 0.
