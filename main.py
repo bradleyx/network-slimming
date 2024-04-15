@@ -164,8 +164,24 @@ print("Labels max value:", labels.max())
 
 if args.refine:
     checkpoint = torch.load(args.refine)
-    model = models.__dict__[args.arch]()
-    model.load_state_dict(checkpoint['state_dict'])
+    model = models.__dict__[args.arch]()  # Use your pruned model architecture
+    
+    # Load the state dictionary from the checkpoint
+    state_dict = checkpoint['state_dict']
+    
+    # Create a new state dictionary with matching keys and shapes
+    new_state_dict = {}
+    for key, value in state_dict.items():
+        if key in model.state_dict():
+            if value.shape == model.state_dict()[key].shape:
+                new_state_dict[key] = value
+            else:
+                print(f"Skipping parameter '{key}' due to shape mismatch: {value.shape} vs {model.state_dict()[key].shape}")
+        else:
+            print(f"Skipping parameter '{key}' as it is not present in the current model")
+    
+    # Load the new state dictionary into the model
+    model.load_state_dict(new_state_dict, strict=False)
 else:
     model = models.__dict__[args.arch]()
 

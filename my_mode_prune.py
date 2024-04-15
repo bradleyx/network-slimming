@@ -43,13 +43,13 @@ print(model)
 total = 0
 for m in model.modules():
     if isinstance(m, nn.Conv2d):
-        total += m.weight.data.shape[0]
+        total += m.weight.data.numel()
 
 conv_weights = torch.zeros(total)
 index = 0
 for m in model.modules():
     if isinstance(m, nn.Conv2d):
-        size = m.weight.data.shape[0]
+        size = m.weight.data.numel()
         conv_weights[index:(index+size)] = m.weight.data.abs().clone().view(-1)
         index += size
 
@@ -89,11 +89,25 @@ print('Total conv params: {}, Pruned conv params: {}, Pruned ratio: {}'.format(t
 newmodel = my_model()
 layer_id_in_cfg = 0
 start_mask = torch.ones(3)
-end_mask = conv_weights.gt(thre).float().view(-1).cuda()
+conv_idx = 0
+
+for m0 in model.modules():
+    if isinstance(m0, nn.Conv2d):
+        end_mask = conv_weights[conv_idx:conv_idx+m0.weight.data.shape[0]].gt(thre).float().cuda()
+        conv_idx += m0.weight.data.shape[0]
+        break
 for [m0, m1] in zip(model.modules(), newmodel.modules()):
     if isinstance(m0, nn.Conv2d):
+        print(f"Processing convolutional layer: {m0}")
+        print(f"Weight shape: {m0.weight.data.shape}")
+        print(f"start_mask: {start_mask}")
+        print(f"end_mask: {end_mask}")
         idx0 = np.squeeze(np.argwhere(np.asarray(start_mask.cpu().numpy())))
         idx1 = np.squeeze(np.argwhere(np.asarray(end_mask.cpu().numpy())))
+        print(f"idx0: {idx0}")
+        print(f"idx1: {idx1}")
+        assert idx0.size <= m0.weight.data.shape[1], "idx0 size exceeds input channels"
+        assert idx1.size <= m0.weight.data.shape[0], "idx1 size exceeds output channels"
         if idx0.size == 1:
             idx0 = np.resize(idx0, (1,))
         if idx1.size == 1:
@@ -101,10 +115,10 @@ for [m0, m1] in zip(model.modules(), newmodel.modules()):
         w1 = m0.weight.data[:, idx0.tolist(), :, :].clone()
         w1 = w1[idx1.tolist(), :, :, :].clone()
         m1.weight.data = w1.clone()
-        layer_id_in_cfg += 1
         start_mask = end_mask.clone()
-        if layer_id_in_cfg < len(model.conv_layers):
-            end_mask = conv_weights[layer_id_in_cfg].gt(thre).float().view(-1).cuda()
+        layer_id_in_cfg = np.argwhere(np.asarray(list(model.modules())) == m0)[0][0]
+        if layer_id_in_cfg < len(list(model.modules())) - 1 and isinstance(list(model.modules())[layer_id_in_cfg + 1], nn.Conv2d):
+            end_mask = conv_weights[layer_id_in_cfg + 1].gt(thre).float().view(-1).cuda()
     elif isinstance(m0, nn.Linear):
         m1.weight.data = m0.weight.data.clone()
         m1.bias.data = m0.bias.data.clone()
