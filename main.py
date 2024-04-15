@@ -118,11 +118,15 @@ print("Unique labels in val_labels:", np.unique(val_labels))
 
 train_transforms = transforms.Compose([
     transforms.ToPILImage(),
+    transforms.Pad(4),
+    transforms.RandomCrop(32),
     transforms.ToTensor()
 ])
 
 test_transforms = transforms.Compose([
     transforms.ToPILImage(),
+    transforms.Pad(4),
+    transforms.RandomCrop(32),
     transforms.ToTensor()
 ])
 
